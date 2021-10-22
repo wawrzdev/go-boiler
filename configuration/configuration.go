@@ -2,7 +2,6 @@ package configuration
 
 import (
 	"encoding/json"
-	"fmt"
 	"time"
 
 	"github.com/spf13/viper"
@@ -15,7 +14,7 @@ type Configuration struct {
 }
 
 type ServerConfiguration struct {
-	BIND_ADDRRESS string        `json:"BindAddress"`
+	BIND_ADDRESS  string        `json:"BindAddress"`
 	READ_TIMEOUT  time.Duration `json:"ReadTimeout"`
 	WRITE_TIMEOUT time.Duration `json:"WriteTimeout"`
 	IDLE_TIMEOUT  time.Duration `json:"IdleTimeout"`
@@ -37,7 +36,6 @@ func LoadConfiguration(name, fType string, filePaths *[]string) (config *Configu
 
 	err = viper.ReadInConfig()
 	if err != nil {
-		fmt.Println(err)
 		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
 			// config file was found but another error was produced
 			return nil, err

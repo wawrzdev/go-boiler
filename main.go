@@ -21,11 +21,14 @@ const (
 
 func getDefaultConfiguration() *map[string]interface{} {
 	return &map[string]interface{}{
-		"BIND_ADDRESS":  ":9090",
-		"API_NAME":      "API",
-		"READ_TIMEOUT":  5,
-		"WRITE_TIMEOUT": 10,
-		"IDLE_TIMEOUT":  120,
+		"API_NAME":             "API",
+		"server.BIND_ADDRESS":  ":9090",
+		"server.READ_TIMEOUT":  5,
+		"server.WRITE_TIMEOUT": 10,
+		"server.IDLE_TIMEOUT":  120,
+		"database.DB_NAME":     "DB",
+		"database.DB_USER":     "user",
+		"database.DB_PASSWORD": "password",
 	}
 }
 
@@ -38,29 +41,32 @@ func getConfigurationPaths() (*[]string, error) {
 }
 
 func main() {
-	l := log.New(os.Stdout, "Config: ", log.LstdFlags)
+	l := log.New(os.Stdout, "Config - ", log.LstdFlags)
 
 	// set default config and load configuration from file
 	defaultConfig := getDefaultConfiguration()
 	configPaths, err := getConfigurationPaths()
 	if err != nil {
-		l.Printf("Error loading default config paths: %w\n", err)
+		l.Printf("Error loading default config paths: %s\n", err)
 		os.Exit(1)
 	}
 	configuration.SetDefaultConfiguration(defaultConfig)
 	cf, err := configuration.LoadConfiguration(configFileName, configFileType, configPaths)
 	if err != nil {
-		l.Printf("Error reading configuration file: %w\n", err)
+		l.Printf("Error reading configuration file: %s\n", err)
 		os.Exit(1)
 	}
-	l.SetPrefix(fmt.Sprintf("%s: ", cf.API_NAME))
+	l.SetPrefix(fmt.Sprintf("%s - ", cf.API_NAME))
 
 	// create db connection
+	l.Println("Creating database connection")
 	db, err := cf.Database.GetDatabaseConfiguration()
 	if err != nil {
-		l.Printf("Error reading database configuration %w\n", err)
+		l.Printf("Error reading database configuration: %s\n", err)
+		os.Exit(1)
 	}
-	l.Printf("Configured database with %s\n", db)
+	l.Printf("Configured database with: %s\n", db)
+
 	// create the handlers
 	l.Println("Creating handlers")
 
@@ -70,7 +76,7 @@ func main() {
 
 	// create a server
 	s := http.Server{
-		Addr:         cf.Server.BIND_ADDRRESS,               // configure the bind address
+		Addr:         cf.Server.BIND_ADDRESS,                // configure the bind address
 		Handler:      sm,                                    // set the default handler
 		ErrorLog:     l,                                     // set the logger for the server
 		ReadTimeout:  cf.Server.READ_TIMEOUT * time.Second,  // max time to read request from the client
@@ -80,13 +86,14 @@ func main() {
 
 	sc, err := cf.Server.GetServerConfiguration()
 	if err != nil {
-		l.Printf("Error reading server configuration %w\n", err)
+		l.Printf("Error reading server configuration: %s\n", err)
+		os.Exit(1)
 	}
-	l.Printf("Configured server with %s\n", sc)
+	l.Printf("Configured server with: %s\n", sc)
 
 	// start the server
 	go func() {
-		l.Printf("Starting server on %s\n", cf.Server.BIND_ADDRRESS)
+		l.Printf("Starting server on: %s\n", cf.Server.BIND_ADDRESS)
 
 		err := s.ListenAndServe()
 		if err != nil {
@@ -105,6 +112,7 @@ func main() {
 	l.Printf("Got signal: %s", sig)
 
 	// gracefuly shutdown waiting max 30 seconds for operation completion
+	l.Println("Shutting down server gracefully")
 	ctx, _ := context.WithTimeout(context.Background(), 30*time.Second)
 	s.Shutdown(ctx)
 
