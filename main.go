@@ -55,6 +55,12 @@ func main() {
 	}
 	l.SetPrefix(fmt.Sprintf("%s: ", cf.API_NAME))
 
+	// create db connection
+	db, err := cf.Database.GetDatabaseConfiguration()
+	if err != nil {
+		l.Printf("Error reading database configuration %w\n", err)
+	}
+	l.Printf("Configured database with %s\n", db)
 	// create the handlers
 	l.Println("Creating handlers")
 
@@ -74,9 +80,9 @@ func main() {
 
 	sc, err := cf.Server.GetServerConfiguration()
 	if err != nil {
-		l.Printf("Configured server with default values\n")
+		l.Printf("Error reading server configuration %w\n", err)
 	}
-	l.Printf("Configured server with %v\n", sc)
+	l.Printf("Configured server with %s\n", sc)
 
 	// start the server
 	go func() {

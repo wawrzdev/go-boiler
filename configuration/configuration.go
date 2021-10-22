@@ -22,6 +22,9 @@ type ServerConfiguration struct {
 }
 
 type DatabaseConfiguration struct {
+	DB_NAME     string `json:"DB_NAME"`
+	DB_USER     string `json:"DB_USER"`
+	DB_PASSWORD string `json:"DB_PASSWORD"`
 }
 
 func LoadConfiguration(name, fType string, filePaths *[]string) (config *Configuration, err error) {
@@ -37,13 +40,15 @@ func LoadConfiguration(name, fType string, filePaths *[]string) (config *Configu
 		fmt.Println(err)
 		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
 			// config file was found but another error was produced
-			pe := fmt.Errorf("error reading config file: %w", err)
-			return nil, pe
+			return nil, err
 		}
 	}
 
 	var c Configuration
-	viper.Unmarshal(&c)
+	err = viper.Unmarshal(&c)
+	if err != nil {
+		return nil, err
+	}
 
 	return &c, nil
 }

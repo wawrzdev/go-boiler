@@ -5,3 +5,8 @@ server:
   READ_TIMEOUT: 5
   WRITE_TIMEOUT: 10
   IDLE_TIMEOUT: 120
+
+database: 
+  DB_NAME: boiler-db
+  DB_USER: boiler
+  DB_PASSWORD: password
