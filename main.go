@@ -11,32 +11,49 @@ import (
 	"time"
 
 	"github.com/gorilla/mux"
-	"github.com/spf13/viper"
+	"github.com/wawrzdev/go-boiler/configuration"
 )
 
-func main() {
-	// set defaults and read config file
-	viper.SetConfigName("config") // name of config file (without extension)
-	// viper.SetConfigType("yaml")     // REQUIRED if the config file does not have the extension in the name
-	viper.AddConfigPath("/etc/app") // path to look for the config file in
-	viper.AddConfigPath("$HOME/.app")
-	viper.AddConfigPath(".")
-	err := viper.ReadInConfig()
-	if err != nil {
-		if _, ok := err.(viper.ConfigFileNotFoundError); !ok {
-			// config file was found but another error was produced
-			pe := fmt.Errorf("error reading config file: %w", err)
-			fmt.Println(pe)
-			os.Exit(1)
-		}
-	}
-	viper.SetDefault("BIND_ADDRESS", ":9090")
-	viper.SetDefault("API_NAME", "API")
-	viper.SetDefault("READ_TIMEOUT", 5)
-	viper.SetDefault("WRITE_TIMEOUT", 10)
-	viper.SetDefault("IDLE_TIMEOUT", 120)
+const (
+	configFileName = "config"
+	configFileType = "yaml"
+)
 
-	l := log.New(os.Stdout, fmt.Sprintf("%s: ", viper.GetString("API_NAME")), log.LstdFlags)
+func getDefaultConfiguration() *map[string]interface{} {
+	return &map[string]interface{}{
+		"BIND_ADDRESS":  ":9090",
+		"API_NAME":      "API",
+		"READ_TIMEOUT":  5,
+		"WRITE_TIMEOUT": 10,
+		"IDLE_TIMEOUT":  120,
+	}
+}
+
+func getConfigurationPaths() (*[]string, error) {
+	pwd, err := os.Getwd()
+	if err != nil {
+		return nil, fmt.Errorf("error getting current directory: %w", err)
+	}
+	return &[]string{"/etc/app", "$HOME/.app", ".", pwd}, nil
+}
+
+func main() {
+	l := log.New(os.Stdout, "Config: ", log.LstdFlags)
+
+	// set default config and load configuration from file
+	defaultConfig := getDefaultConfiguration()
+	configPaths, err := getConfigurationPaths()
+	if err != nil {
+		l.Printf("Error loading default config paths: %w\n", err)
+		os.Exit(1)
+	}
+	configuration.SetDefaultConfiguration(defaultConfig)
+	cf, err := configuration.LoadConfiguration(configFileName, configFileType, configPaths)
+	if err != nil {
+		l.Printf("Error reading configuration file: %w\n", err)
+		os.Exit(1)
+	}
+	l.SetPrefix(fmt.Sprintf("%s: ", cf.API_NAME))
 
 	// create the handlers
 	l.Println("Creating handlers")
@@ -47,20 +64,23 @@ func main() {
 
 	// create a server
 	s := http.Server{
-		Addr:         viper.GetString("BIND_ADDRESS"),                  // configure the bind address
-		Handler:      sm,                                               // set the default handler
-		ErrorLog:     l,                                                // set the logger for the server
-		ReadTimeout:  viper.GetDuration("READ_TIMEOUT") * time.Second,  // max time to read request from the client
-		WriteTimeout: viper.GetDuration("WRITE_TIMEOUT") * time.Second, // max time to write response to the client
-		IdleTimeout:  viper.GetDuration("IDLE_TIMEOUT") * time.Second,  // max time for connections using TCP Keep-Alive
+		Addr:         cf.Server.BIND_ADDRRESS,               // configure the bind address
+		Handler:      sm,                                    // set the default handler
+		ErrorLog:     l,                                     // set the logger for the server
+		ReadTimeout:  cf.Server.READ_TIMEOUT * time.Second,  // max time to read request from the client
+		WriteTimeout: cf.Server.WRITE_TIMEOUT * time.Second, // max time to write response to the client
+		IdleTimeout:  cf.Server.IDLE_TIMEOUT * time.Second,  // max time for connections using TCP Keep-Alive
 	}
 
-	// TODO: Make this look better
-	l.Printf("Created server: %+v\n", s)
+	sc, err := cf.Server.GetServerConfiguration()
+	if err != nil {
+		l.Printf("Configured server with default values\n")
+	}
+	l.Printf("Configured server with %v\n", sc)
 
 	// start the server
 	go func() {
-		l.Printf("Starting server on %s\n", viper.GetString("BIND_ADDRESS"))
+		l.Printf("Starting server on %s\n", cf.Server.BIND_ADDRRESS)
 
 		err := s.ListenAndServe()
 		if err != nil {
