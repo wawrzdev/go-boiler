@@ -1,4 +1,4 @@
-API_NAME: Boiler-API
+API_NAME: go-boiler
 
 server: 
   BIND_ADDRESS: :9090

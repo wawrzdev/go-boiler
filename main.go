@@ -15,6 +15,19 @@ import (
 )
 
 const (
+	banner = `
+   _____          ____          _  _             
+  / ____|        |  _ \        (_)| |            
+ | |  __   ___   | |_) |  ___   _ | |  ___  _ __ 
+ | | |_ | / _ \  |  _ <  / _ \ | || | / _ \| '__|
+ | |__| || (_) | | |_) || (_) || || ||  __/| |   
+  \_____| \___/  |____/  \___/ |_||_| \___||_|   
+                                                 
+                                                 
+`
+)
+
+const (
 	configFileName = "config"
 	configFileType = "yaml"
 )
@@ -41,6 +54,7 @@ func getConfigurationPaths() (*[]string, error) {
 }
 
 func main() {
+	fmt.Println(banner)
 	l := log.New(os.Stdout, "Config - ", log.LstdFlags)
 
 	// set default config and load configuration from file
@@ -51,7 +65,7 @@ func main() {
 		os.Exit(1)
 	}
 	configuration.SetDefaultConfiguration(defaultConfig)
-	cf, err := configuration.LoadConfiguration(configFileName, configFileType, configPaths)
+	cf, err := configuration.LoadConfigurationFromFile(configFileName, configFileType, configPaths)
 	if err != nil {
 		l.Printf("Error reading configuration file: %s\n", err)
 		os.Exit(1)

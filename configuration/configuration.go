@@ -26,7 +26,7 @@ type DatabaseConfiguration struct {
 	DB_PASSWORD string `json:"DB_PASSWORD"`
 }
 
-func LoadConfiguration(name, fType string, filePaths *[]string) (config *Configuration, err error) {
+func LoadConfigurationFromFile(name, fType string, filePaths *[]string) (config *Configuration, err error) {
 	for _, v := range *filePaths {
 		viper.AddConfigPath(v)
 	}
